@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AquaReg · Advanced Water Meter Register</title>
+  <style>
+    /* ---------- advanced design system ---------- */
+    :root {
+      color-scheme: dark light;
+      --bg: #0c1a20;
+      --bg-gradient: radial-gradient(circle at 10% 20%, #0f2e36, #07131a 90%);
+      --surface: rgba(22, 44, 54, 0.75);
+      --surface-solid: #132a32;
+      --surface-glass: rgba(30, 58, 68, 0.6);
+      --glass-border: rgba(120, 200, 220, 0.18);
+      --ink: #e4f0f3;
+      --ink-soft: #b2cdd6;
+      --muted: #8ba8b2;
+      --line: rgba(120, 180, 200, 0.2);
+      --accent: #3fc9e0;
+      --accent-glow: rgba(63, 201, 224, 0.3);
+      --accent-ink: #032b33;
+      --meter-red: #ff6b5e;
+      --dial-bg: #05141c;
+      --dial-ink: #eef9fc;
+      --ok: #44d18b;
+      --ok-bg: rgba(68, 209, 139, 0.14);
+      --warn: #f5b84c;
+      --warn-bg: rgba(245, 184, 76, 0.14);
+      --bad: #ff6b5e;
+      --bad-bg: rgba(255, 107, 94, 0.14);
+      --chip-bg: rgba(120, 190, 210, 0.12);
+      --shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.6);
+      --radius-card: 24px;
+      --radius-btn: 40px;
+      --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #e8f0f3;
+        --bg-gradient: radial-gradient(circle at 10% 20%, #d8e9ef, #eef6f9 90%);
+        --surface: rgba(255, 255, 255, 0.82);
+        --surface-solid: #ffffff;
+        --surface-glass: rgba(255, 255, 255, 0.6);
+        --glass-border: rgba(100, 160, 180, 0.25);
+        --ink: #0a2a33;
+        --ink-soft: #1c4654;
+        --muted: #4a6f7a;
+        --line: rgba(80, 140, 160, 0.3);
+        --accent: #0d7f99;
+        --accent-glow: rgba(13, 127, 153, 0.2);
+        --accent-ink: #ffffff;
+        --meter-red: #c0392b;
+        --dial-bg: #1b3038;
+        --dial-ink: #ffffff;
+        --ok: #1e7a4c;
+        --ok-bg: rgba(30, 122, 76, 0.12);
+        --warn: #9f6100;
+        --warn-bg: rgba(159, 97, 0, 0.12);
+        --bad: #b3261e;
+        --bad-bg: rgba(179, 38, 30, 0.12);
+        --chip-bg: rgba(80, 150, 170, 0.12);
+        --shadow: 0 20px 40px -12px rgba(0, 30, 40, 0.2);
+      }
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      background-image: var(--bg-gradient);
+      color: var(--ink);
+      line-height: 1.55;
+      min-height: 100vh;
+      padding: 0 1rem 2rem;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 1200px;
+      padding: 1.5rem 0.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    /* ----- glassmorphic card base ----- */
+    .card {
+      background: var(--surface);
+      backdrop-filter: blur(18px) saturate(180%);
+      -webkit-backdrop-filter: blur(18px) saturate(180%);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-card);
+      padding: 1.75rem 1.8rem;
+      box-shadow: var(--shadow);
+      transition: box-shadow 0.25s ease, border-color 0.2s;
+    }
+
+    .card:hover { border-color: rgba(100, 200, 220, 0.35); }
+
+    /* ----- header ----- */
+    .app-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.25rem 0.5rem 0.25rem 0.8rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--accent), #1e9bb5);
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      font-size: 1.6rem;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .brand h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, var(--ink), var(--accent));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand .sub {
+      font-size: 0.8rem;
+      color: var(--muted);
+      letter-spacing: 0.02em;
+      margin-top: 0.1rem;
+    }
+
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: var(--surface-glass);
+      padding: 0.4rem 1rem 0.4rem 0.8rem;
+      border-radius: 40px;
+      border: 1px solid var(--glass-border);
+      font-size: 0.85rem;
+      color: var(--ink-soft);
+    }
+
+    .user-badge .avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #127a8e);
+      display: grid;
+      place-items: center;
+      color: var(--accent-ink);
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      background: var(--chip-bg);
+      border-radius: 40px;
+      padding: 0.25rem 0.9rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      border: 1px solid var(--glass-border);
+    }
+
+    .chip.ok { background: var(--ok-bg); color: var(--ok); border-color: transparent; }
+    .chip.warn { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
+    .chip.bad { background: var(--bad-bg); color: var(--bad); border-color: transparent; }
+
+    /* ----- nav tabs (pill style) ----- */
+    .nav-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      padding: 0.3rem;
+      background: var(--surface-glass);
+      border-radius: 60px;
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .nav-tabs button {
+      background: transparent;
+      border: none;
+      border-radius: 40px;
+      padding: 0.7rem 1.5rem;
+      font: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      flex: 0 1 auto;
+    }
+
+    .nav-tabs button:hover { color: var(--ink); background: rgba(120, 190, 210, 0.08); }
+
+    .nav-tabs button[aria-current="page"] {
+      background: var(--accent);
+      color: var(--accent-ink);
+      box-shadow: 0 4px 16px var(--accent-glow);
+    }
+
+    /* ----- panels & sections ----- */
+    .panel {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .panel h2 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .panel h2 .h-icon {
+      font-size: 1.4rem;
+      opacity: 0.8;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+
+    @media (max-width: 720px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; gap: 1rem; }
+      .app { padding: 0.5rem 0 1.5rem; }
+      .card { padding: 1.25rem; }
+      .brand h1 { font-size: 1.3rem; }
+    }
+
+    /* ----- form elements (advanced look) ----- */
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      font-weight: 600;
+      font-size: 0.8rem;
+      letter-spacing: 0.02em;
+      color: var(--ink-soft);
+    }
+
+    label.check {
+      flex-direction: row;
+      align-items: center;
+      gap: 0.6rem;
+      font-weight: 500;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    label.check input { width: auto; min-height: unset; accent-color: var(--accent); transform: scale(1.1); }
+
+    input, select, textarea {
+      font: inherit;
+      font-size: 0.95rem;
+      color: var(--ink);
+      background: var(--surface-solid);
+      border: 1.5px solid var(--line);
+      border-radius: 14px;
+      padding: 0.85rem 1rem;
+      width: 100%;
+      min-height: 48px;
+      transition: border 0.2s, box-shadow 0.2s;
+      outline: none;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-glow);
+    }
+
+    input[readonly] {
+      background: var(--bg);
+      opacity: 0.75;
+      cursor: default;
+    }
+
+    select:disabled { opacity: 0.65; }
+
+    small { font-weight: 400; color: var(--muted); font-size: 0.75rem; }
+
+    button {
+      font: inherit;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border-radius: var(--radius-btn);
+      border: 1px solid var(--line);
+      background: var(--surface-solid);
+      color: var(--ink);
+      padding: 0.75rem 1.6rem;
+      min-height: 48px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      white-space: nowrap;
+    }
+
+    button:hover { border-color: var(--accent); transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+
+    button.primary {
+      background: linear-gradient(135deg, var(--accent), #178fa8);
+      border-color: transparent;
+      color: var(--accent-ink);
+      box-shadow: 0 6px 18px var(--accent-glow);
+    }
+
+    button.primary:hover { box-shadow: 0 8px 24px var(--accent-glow); }
+
+    button.btn-sm {
+      min-height: 36px;
+      padding: 0.35rem 1rem;
+      font-size: 0.8rem;
+    }
+
+    button.lnk {
+      background: none;
+      border: none;
+      padding: 0;
+      min-height: unset;
+      text-decoration: underline;
+      font-weight: 500;
+      color: var(--accent);
+      box-shadow: none;
+      font-size: 0.8rem;
+    }
+
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      margin-top: 0.25rem;
+    }
+
+    /* ----- meter odometer (refined) ----- */
+    .odo {
+      display: inline-flex;
+      gap: 4px;
+      background: var(--dial-bg);
+      padding: 10px 14px;
+      border-radius: 16px;
+      align-self: flex-start;
+      max-width: 100%;
+      flex-wrap: wrap;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
+    }
+
+    .odo .d {
+      font: 600 22px/1 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+      color: var(--dial-ink);
+      width: 24px;
+      text-align: center;
+      padding: 6px 0;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 6px;
+      letter-spacing: -0.02em;
+    }
+
+    .odo .d.r { color: var(--meter-red); background: rgba(255, 255, 255, 0.12); }
+    .odo .pt { color: var(--dial-ink); font: 20px ui-monospace, monospace; align-self: flex-end; padding-bottom: 5px; }
+
+    /* ----- tables (advanced) ----- */
+    .tbl-wrap {
+      overflow-x: auto;
+      border-radius: 18px;
+      border: 1px solid var(--glass-border);
+      background: var(--surface-glass);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      margin: 0.5rem 0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+
+    th, td {
+      padding: 0.85rem 1rem;
+      text-align: right;
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle;
+      font-variant-numeric: tabular-nums;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: rgba(0, 0, 0, 0.08);
+      position: sticky;
+      top: 0;
+      backdrop-filter: blur(4px);
+    }
+
+    th.l, td.l { text-align: left; }
+
+    tbody tr:hover td { background: rgba(120, 200, 220, 0.06); }
+
+    tr.paid td { background: var(--ok-bg); }
+    tr.await td { background: var(--warn-bg); }
+    tr.ns td { background: var(--bad-bg); }
+
+    tfoot td {
+      font-weight: 700;
+      border-bottom: none;
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    /* ----- messages & banners ----- */
+    .msg {
+      border-radius: 16px;
+      padding: 0.9rem 1.25rem;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      border-left: 4px solid transparent;
+      background: var(--surface-solid);
+    }
+
+    .msg.ok { background: var(--ok-bg); color: var(--ok); border-left-color: var(--ok); }
+    .msg.err { background: var(--bad-bg); color: var(--bad); border-left-color: var(--bad); }
+    .msg.warn { background: var(--warn-bg); color: var(--warn); border-left-color: var(--warn); }
+
+    .msg ul { margin: 0.4rem 0 0 1.2rem; padding: 0; }
+    .msg ul li { margin: 0.15rem 0; }
+
+    .banner-ok {
+      background: var(--ok-bg);
+      border-left: 4px solid var(--ok);
+      border-radius: 16px;
+      padding: 0.85rem 1.25rem;
+      font-weight: 600;
+      color: var(--ok);
+      font-size: 0.9rem;
+    }
+
+    /* ----- summary & stats ----- */
+    .summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.75rem;
+      font-size: 0.85rem;
+      background: var(--surface-glass);
+      padding: 1rem 1.25rem;
+      border-radius: 20px;
+      border: 1px solid var(--glass-border);
+    }
+
+    .summary b { font-variant-numeric: tabular-nums; color: var(--accent); }
+
+    /* skeleton loader */
+    .sk {
+      height: 16px;
+      border-radius: 8px;
+      background: var(--chip-bg);
+      animation: pulse 1.4s infinite ease-in-out;
+    }
+    @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+
+    /* sub-tabs */
+    .stabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .stabs button {
+      background: var(--chip-bg);
+      border: none;
+      border-radius: 40px;
+      padding: 0.5rem 1.4rem;
+      color: var(--muted);
+      font: inherit;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+      box-shadow: none;
+      min-height: 38px;
+    }
+
+    .stabs button.active {
+      background: var(--accent);
+      color: var(--accent-ink);
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+
+    /* dialog */
+    dialog {
+      border: 1px solid var(--glass-border);
+      border-radius: 28px;
+      background: var(--surface);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      color: var(--ink);
+      max-width: 480px;
+      width: calc(100% - 32px);
+      padding: 2rem;
+      box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.7);
+    }
+
+    dialog::backdrop { background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(6px); }
+
+    dialog h3 { font-size: 1.3rem; margin-bottom: 1.25rem; }
+
+    [hidden] { display: none !important; }
+
+    /* utility */
+    .hint { color: var(--muted); font-size: 0.78rem; margin-top: 0.15rem; font-weight: 400; }
+    .mt-1 { margin-top: 0.5rem; } .mt-2 { margin-top: 1rem; } .mt-3 { margin-top: 1.5rem; }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
+    .text-accent { color: var(--accent); }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">💧</div>
+      <div>
+        <h1 id="society">AquaReg</h1>
+        <div class="sub" id="who">Water Meter Register · advanced edition</div>
+      </div>
+    </div>
+    <div class="user-badge">
+      <span class="avatar" id="user-avatar">A</span>
+      <span id="user-email">admin@example.com</span>
+      <span class="chip ok" id="user-role">Admin</span>
+    </div>
+  </header>
+
+  <!-- Error banner -->
+  <div id="banner" class="msg err" hidden></div>
+
+  <!-- Loading skeleton -->
+  <div id="loading" class="card" style="padding:2rem;">
+    <div class="sk" style="width:40%; height:20px; margin-bottom:1rem;"></div>
+    <div class="sk" style="width:75%; height:16px; margin-bottom:0.75rem;"></div>
+    <div class="sk" style="width:60%; height:16px; margin-bottom:0.75rem;"></div>
+    <div class="sk" style="width:85%; height:16px;"></div>
+  </div>
+
+  <!-- Nav tabs -->
+  <nav class="nav-tabs" id="tabs" aria-label="Sections" hidden></nav>
+
+  <!-- ================= SUBMIT READING ================= -->
+  <section id="v-submit" class="card panel" hidden>
+    <h2><span class="h-icon">📝</span> Submit Water Meter Reading</h2>
+    <form id="form" class="panel" style="gap:1.25rem;" novalidate>
+      <div class="grid-3">
+        <label>Month <input id="f-month" readonly></label>
+        <label>House number <select id="f-house"></select></label>
+        <label>Owner <input id="f-owner" readonly></label>
+      </div>
+      <div class="grid-2">
+        <label>Meter reading <small>As shown on the meter (last 2 red digits are decimals). 1 unit = <span id="lpu"></span> litres.</small>
+          <input id="f-reading" inputmode="decimal" autocomplete="off" placeholder="e.g. 100645"></label>
+        <div>
+          <div style="font-size:0.8rem;font-weight:600;margin-bottom:0.5rem;color:var(--ink-soft);">Meter display</div>
+          <div class="odo" id="odo" aria-live="polite"></div>
+        </div>
+      </div>
+      <label>Meter photo <small>Resized in your browser before upload.</small><input id="f-photo" type="file" accept="image/*"></label>
+      <div id="f-admin" class="grid-2" hidden>
+        <label class="check"><input type="checkbox" id="f-replaced"> New meter fitted this month</label>
+        <label id="f-start-l" hidden>New meter start reading <input id="f-start" inputmode="decimal" value="0"></label>
+        <label class="check"><input type="checkbox" id="f-waive"> Waive the late fee</label>
+        <label id="f-waive-l" hidden>Reason for waiving <input id="f-waive-reason" placeholder="Required"></label>
+      </div>
+      <div id="deadline" class="msg warn" hidden></div>
+      <div id="decision" class="msg warn" hidden></div>
+      <div id="f-msg" class="msg" hidden></div>
+      <div class="actions"><button class="primary" id="f-go" type="submit">Submit reading</button></div>
+    </form>
+  </section>
+
+  <!-- ================= SOCIETY MAINTENANCE ================= -->
+  <section id="v-maint" class="card panel" hidden>
+    <h2><span class="h-icon">🏢</span> Society Maintenance</h2>
+    <div class="grid-3">
+      <label>Month <input id="m-month" readonly></label>
+      <label>House number <select id="m-house"></select></label>
+      <label>Owner <input id="m-owner" readonly></label>
+    </div>
+    <div class="grid-2">
+      <div><span style="font-size:0.8rem;font-weight:600;color:var(--ink-soft);">Monthly maintenance charge</span><div style="font-size:1.8rem;font-weight:700;margin-top:0.2rem;">₹ <span id="m-amt">0.00</span></div></div>
+      <div><span style="font-size:0.8rem;font-weight:600;color:var(--ink-soft);">Payment due by</span><div style="font-size:1rem;margin-top:0.3rem;">Day <span id="m-due">18</span> of next month</div></div>
+    </div>
+    <div id="m-banner"></div>
+    <div id="m-msg" class="msg" hidden></div>
+    <h3 style="font-size:1rem;font-weight:600;margin-top:0.5rem;">Last 6 months</h3>
+    <div class="tbl-wrap">
+      <table><thead><tr><th class="l">Month</th><th>Amount</th><th>Late fee</th><th>Arrears</th><th>Total</th><th>Paid</th><th>Balance</th><th class="l">Status</th><th></th></tr></thead><tbody id="m-rows"></tbody></table>
+    </div>
+    <p class="hint">Click Pay to submit your maintenance payment with a screenshot. Green = verified. Amber = awaiting admin.</p>
+  </section>
+
+  <!-- ================= MY HOUSE ================= -->
+  <section id="v-house" class="card panel" hidden>
+    <h2><span class="h-icon">🏠</span> My house · last 6 months</h2>
+    <div class="grid-2" style="margin-bottom:0.5rem;"><label>House <select id="h-house"></select></label><span></span></div>
+    <div class="stabs" id="h-stabs">
+      <button type="button" data-hstab="water" class="active">Water Reading</button>
+      <button type="button" data-hstab="maint">Society Maintenance</button>
+    </div>
+    <div id="h-water">
+      <div id="h-banner"></div>
+      <div id="h-msg" class="msg" hidden></div>
+      <div class="tbl-wrap">
+        <table><thead><tr><th class="l">Month</th><th class="l">Status</th><th>Reading</th><th>Litres</th><th>Charge</th><th>Late fees</th><th>Arrears</th><th>Total</th><th>Paid</th><th>Balance</th><th class="l">Check</th><th class="l">Photo</th><th></th></tr></thead><tbody id="h-rows"></tbody></table>
+      </div>
+      <p class="hint">Green = payment verified by the admin. Amber = payment sent, waiting for the admin to check it.</p>
+    </div>
+    <div id="h-maint" hidden>
+      <div id="hm-banner"></div>
+      <div id="hm-msg" class="msg" hidden></div>
+      <div class="tbl-wrap">
+        <table><thead><tr><th class="l">Month</th><th>Amount</th><th>Late fee</th><th>Arrears</th><th>Total</th><th>Paid</th><th>Balance</th><th class="l">Status</th><th></th></tr></thead><tbody id="hm-rows"></tbody></table>
+      </div>
+      <p class="hint">Green = payment verified. Amber = awaiting admin verification.</p>
+    </div>
+  </section>
+
+  <!-- ================= REPORTS ================= -->
+  <section id="v-report" class="card panel" hidden>
+    <h2><span class="h-icon">📊</span> Reports</h2>
+    <div class="grid-3">
+      <label>From month <select id="r-from"></select></label>
+      <label>To month <select id="r-to"></select></label>
+      <span class="hint" style="align-self:end">Pick several months to get one combined bill.</span>
+    </div>
+    <div class="stabs" id="r-stabs">
+      <button type="button" data-rstab="water" class="active">Water Bill</button>
+      <button type="button" data-rstab="maint">Society Maintenance</button>
+    </div>
+    <div id="r-water">
+      <div id="r-sum" class="summary"></div>
+      <div id="r-msg" class="msg" hidden></div>
+      <div class="actions">
+        <button id="r-pdf" type="button">⬇ Download PDF</button>
+        <button id="r-mail" type="button">✉ Email PDF to all houses</button>
+        <button id="r-mail2" type="button">✉ Email each house its own bill</button>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr><th class="l">House</th><th class="l">Owner</th><th>Previous</th><th>Current</th><th>Litres</th><th>Usage</th><th>Late fee</th><th>Other</th><th>Arrears</th><th>Total</th><th>Paid</th><th>Balance</th><th class="l">Status</th><th class="l">Photo</th><th></th></tr></thead><tbody id="r-rows"></tbody><tfoot id="r-foot"></tfoot></table>
+      </div>
+    </div>
+    <div id="r-maint" hidden>
+      <div id="rm-sum" class="summary"></div>
+      <div id="rm-msg" class="msg" hidden></div>
+      <div class="actions"><button id="rm-pdf" type="button">⬇ Download Maintenance PDF</button></div>
+      <div class="tbl-wrap">
+        <table><thead><tr><th class="l">House</th><th class="l">Owner</th><th>Amount</th><th>Late fee</th><th>Arrears</th><th>Total</th><th>Paid</th><th>Balance</th><th class="l">Status</th></tr></thead><tbody id="rm-rows"></tbody><tfoot id="rm-foot"></tfoot></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ADMIN ================= -->
+  <section id="v-admin" class="card panel" hidden>
+    <h2><span class="h-icon">⚙️</span> Admin</h2>
+    <div class="nav-tabs" id="a-tabs" style="background:transparent;padding:0;border:none;gap:0.35rem;"></div>
+    <div id="a-pay" hidden>
+      <h3 style="font-size:1rem;margin-top:0.5rem;">Water Payments</h3>
+      <div class="grid-2"><label>Bill month <select id="p-month"></select></label><span></span></div>
+      <div id="p-msg" class="msg" hidden></div>
+      <div class="tbl-wrap">
+        <table><thead><tr><th class="l">Verified</th><th class="l">Month</th><th class="l">House</th><th>Amount</th><th class="l">Paid on</th><th class="l">Mode</th><th class="l">Reference</th><th class="l">Screenshot</th><th class="l">Sent by</th><th></th></tr></thead><tbody id="p-rows"></tbody></table>
+      </div>
+      <p class="hint">Tick "Verified" after you have seen the screenshot in the bank statement.</p>
+      <h3 style="font-size:1rem;margin-top:1.5rem;">Record a water payment (cash, cheque or advance)</h3>
+      <form id="ap-form" class="grid-3" novalidate style="gap:1rem;">
+        <label>House <select id="ap-house"></select></label><label>Bill month <select id="ap-month"></select></label>
+        <label>Amount <input id="ap-amount" inputmode="decimal"></label><label>Paid on <input id="ap-date" type="date"></label>
+        <label>Mode <select id="ap-mode"></select></label><label>Reference <input id="ap-ref"></label>
+        <label>Screenshot (optional) <input id="ap-shot" type="file" accept="image/*"></label>
+        <label class="check"><input type="checkbox" id="ap-ver" checked> Mark verified and email the bill</label>
+        <div><button class="primary" type="submit">Save payment</button></div>
+      </form>
+      <h3 style="font-size:1rem;margin-top:2rem;">Maintenance Payments</h3>
+      <div class="grid-2"><label>Bill month <select id="mp-month"></select></label><span></span></div>
+      <div id="mp-msg" class="msg" hidden></div>
+      <div class="tbl-wrap">
+        <table><thead><tr><th class="l">Verified</th><th class="l">Month</th><th class="l">House</th><th>Amount</th><th class="l">Paid on</th><th class="l">Mode</th><th class="l">Reference</th><th class="l">Screenshot</th><th class="l">Sent by</th><th></th></tr></thead><tbody id="mp-rows"></tbody></table>
+      </div>
+      <h3 style="font-size:1rem;margin-top:1.5rem;">Record a maintenance payment</h3>
+      <form id="amp-form" class="grid-3" novalidate style="gap:1rem;">
+        <label>House <select id="amp-house"></select></label><label>Bill month <select id="amp-month"></select></label>
+        <label>Amount <input id="amp-amount" inputmode="decimal"></label><label>Paid on <input id="amp-date" type="date"></label>
+        <label>Mode <select id="amp-mode"></select></label><label>Reference <input id="amp-ref"></label>
+        <label>Screenshot (optional) <input id="amp-shot" type="file" accept="image/*"></label>
+        <label class="check"><input type="checkbox" id="amp-ver" checked> Mark verified</label>
+        <div><button class="primary" type="submit">Save payment</button></div>
+      </form>
+    </div>
+    <div id="a-settings" hidden>
+      <form id="s-form" class="grid-2" novalidate style="gap:1.25rem;">
+        <label>Society name <input id="s-name"></label>
+        <label>Price per litre (₹) <small>e.g. 0.02</small><input id="s-price" inputmode="decimal"></label>
+        <label>Litres in one meter unit <small>e.g. 10</small><input id="s-lpu" inputmode="decimal"></label>
+        <label>Reading last date (day of month) <input id="s-deadline" inputmode="numeric"></label>
+        <label>Reading late fee - one time (₹) <input id="s-flat" inputmode="decimal"></label>
+        <label>Reading late fee - per day (₹) <input id="s-day" inputmode="decimal"></label>
+        <label>Payment due (day of next month) <input id="s-due" inputmode="numeric"></label>
+        <label>Payment late fee - one time (₹) <input id="s-pflat" inputmode="decimal"></label>
+        <label>Payment late fee - per day (₹) <input id="s-pday" inputmode="decimal"></label>
+        <h3 style="grid-column:1/-1;margin-top:0.5rem;font-size:1rem;">Society Maintenance</h3>
+        <label>Monthly maintenance per house (₹) <small>Set 0 to disable</small><input id="s-mamt" inputmode="decimal"></label>
+        <label>Maintenance start month <small>yyyy-MM (e.g. 2026-01)</small><input id="s-mstart" placeholder="2026-01"></label>
+        <label>Maintenance due (day of next month) <input id="s-mdue" inputmode="numeric"></label>
+        <label>Maintenance late fee - one time (₹) <input id="s-mflat" inputmode="decimal"></label>
+        <label>Maintenance late fee - per day (₹) <input id="s-mday" inputmode="decimal"></label>
+        <label style="grid-column:1/-1">Admin emails <small>Comma separated</small><input id="s-admins"></label>
+        <div id="s-msg" class="msg" hidden style="grid-column:1/-1"></div>
+        <div><button class="primary" type="submit">Save settings</button></div>
+      </form>
+    </div>
+    <div id="a-houses" hidden>
+      <div id="ah-msg" class="msg" hidden></div>
+      <div class="tbl-wrap">
+        <table><thead><tr><th class="l">House</th><th class="l">Owner</th><th class="l">Emails</th><th></th></tr></thead><tbody id="ah-rows"></tbody></table>
+      </div>
+      <div class="actions"><button id="ah-add" type="button">+ Add a house</button></div>
+    </div>
+    <div id="a-tools" hidden>
+      <div id="t-msg" class="msg" hidden></div>
+      <h3 style="font-size:1rem;margin-top:0.5rem;">Adjustment / extra charge</h3>
+      <form id="ad-form" class="grid-3" novalidate style="gap:1rem;">
+        <label>House <select id="ad-house"></select></label><label>Month <select id="ad-month"></select></label>
+        <label>Amount (₹, minus to reduce) <input id="ad-amount" inputmode="decimal"></label>
+        <label style="grid-column:1/-1">Note <small>Shown on the bill in Remarks</small><input id="ad-note" maxlength="100"></label>
+        <div><button class="primary" type="submit">Save adjustment</button></div>
+      </form>
+      <p class="hint mt-2">For a replaced meter use the Submit tab: tick "New meter fitted this month".</p>
+    </div>
+  </section>
+</div>
+
+<!-- Payment dialog -->
+<dialog id="pay-dlg">
+  <form id="pay-form" class="panel" style="gap:1.25rem;border:none;padding:0;" novalidate>
+    <h3 id="pay-title">Send payment</h3>
+    <input type="hidden" id="pay-type" value="water">
+    <label>Amount (₹) <input id="pay-amount" inputmode="decimal"></label>
+    <label>Paid on <input id="pay-date" type="date"></label>
+    <label>Mode <select id="pay-mode"></select></label>
+    <label>Reference / UTR (optional) <input id="pay-ref"></label>
+    <label>Payment screenshot <input id="pay-shot" type="file" accept="image/*"></label>
+    <div id="pay-msg" class="msg" hidden></div>
+    <div class="actions"><button class="primary" id="pay-go" type="submit">Send</button><button type="button" id="pay-cancel">Cancel</button></div>
+  </form>
+</dialog>
+
+<script>
+  (function () {
+    "use strict";
+    var $ = function (s) { return document.querySelector(s); };
+    var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+    var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    var mLong = function (m) { var p = m.split("-"); return MONTHS[+p[1] - 1] + " " + p[0]; };
+    var rs = function (n) { return n == null ? "-" : Number(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+    var nm = function (n) { return n == null ? "-" : Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 }); };
+    var dash = function (n) { return n ? rs(n) : "-"; };
+    var B = null, pendingSubmit = null, payCtx = null, adminLoaded = null;
+    var loaded = {};
+
+    function call(fn) {
+      var args = Array.prototype.slice.call(arguments, 1);
+      return new Promise(function (res, rej) {
+        var r = google.script.run.withSuccessHandler(res).withFailureHandler(rej);
+        r[fn].apply(r, args);
+      });
+    }
+    var errText = function (e) { return (e && e.message ? e.message : String(e)).replace(/^Error:\s*/, ""); };
+    function msg(el, kind, text) { el.hidden = !text; el.className = "msg " + kind; el.textContent = text || ""; }
+    function busy(btn, on, label) { btn.disabled = on; if (label) btn.textContent = on ? "Please wait..." : label; }
+    function monthOpts(sel, withNext, cur) {
+      var base = B.currentMonth.split("-"), y = +base[0], m = +base[1] - 1, html = "";
+      for (var i = withNext ? -1 : 0; i < 24; i++) { var d = new Date(y, m - i, 1), v = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2); html += '<option value="' + v + '">' + mLong(v) + "</option>"; }
+      sel.innerHTML = html; sel.value = cur || B.currentMonth;
+    }
+    function houseOpts(sel, list) { var cur = sel.value; sel.innerHTML = list.map(function (h) { return '<option value="' + esc(h.house) + '">House ' + esc(h.house) + "</option>"; }).join(""); if (cur) sel.value = cur; }
+    function odo(v) {
+      var n = parseFloat(String(v).replace(/,/g, "")); if (!isFinite(n) || n < 0) n = 0;
+      var s = String(Math.round(n)); while (s.length < B.redDigits + 1) s = "0" + s;
+      var whole = s.slice(0, -B.redDigits), dec = s.slice(-B.redDigits);
+      return whole.split("").map(function (c) { return '<span class="d">' + c + "</span>"; }).join("") + '<span class="pt">.</span>' + dec.split("").map(function (c) { return '<span class="d r">' + c + "</span>"; }).join("");
+    }
+    function readFile(file, max) {
+      return new Promise(function (resolve, reject) {
+        var fr = new FileReader();
+        fr.onerror = function () { reject(new Error("That photo could not be read.")); };
+        fr.onload = function () {
+          var img = new Image();
+          img.onerror = function () { reject(new Error("That file is not a picture.")); };
+          img.onload = function () {
+            var k = Math.min(1, max / Math.max(img.width, img.height)), c = document.createElement("canvas");
+            c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+            c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+            resolve(c.toDataURL("image/jpeg", 0.85).split(",")[1]);
+          };
+          img.src = fr.result;
+        };
+        fr.readAsDataURL(file);
+      });
+    }
+    function filePhoto(input) { return input.files && input.files[0] ? readFile(input.files[0], 1600) : Promise.resolve(""); }
+    function download(file) {
+      var bin = atob(file.data), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+      var url = URL.createObjectURL(new Blob([a], { type: "application/pdf" })), l = document.createElement("a");
+      l.href = url; l.download = file.name; document.body.appendChild(l); l.click(); l.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+    }
+    var photoLink = function (url) { return url ? '<a href="' + esc(url) + '" target="_blank" rel="noopener">View</a>' : "-"; };
+    function checkChip(s) { return s === "verified" ? '<span class="chip ok">verified</span>' : s === "review" ? '<span class="chip warn">review</span>' : s ? '<span class="chip">unchecked</span>' : "-"; }
+    function stateChip(r) {
+      var k = r.state === "NOT SENT" ? "bad" : r.state === "Pending" ? "warn" : r.state === "NA" ? "" : "ok";
+      return '<span class="chip ' + k + '">' + esc(r.state === "NA" ? "-" : r.state) + "</span>";
+    }
+    function paidChip(ps) {
+      if (ps === "paid") return '<span class="chip ok">Paid</span>';
+      if (ps === "awaiting") return '<span class="chip warn">Awaiting</span>';
+      if (ps === "due") return '<span class="chip bad">Due</span>';
+      return "-";
+    }
+    function lateCell(r) {
+      var t = (r.subLateFee || 0) + (r.payLateFee || 0); if (!t) return "-";
+      var b = []; if (r.subLateFee) b.push("reading " + r.subLateDays + " d"); if (r.payLateFee) b.push("payment " + r.payLateDays + " d");
+      return rs(t) + '<br><span class="hint">' + b.join(", ") + "</span>";
+    }
+    function setupSubTabs(container, panels, onSwitch) {
+      container.addEventListener("click", function (e) {
+        var btn = e.target.closest("button"); if (!btn) return;
+        Array.prototype.forEach.call(container.children, function (b) { b.classList.remove("active"); });
+        btn.classList.add("active");
+        Object.keys(panels).forEach(function (k) { panels[k].hidden = true; });
+        var keys = Object.keys(btn.dataset), target = btn.dataset[keys[0]];
+        if (panels[target]) panels[target].hidden = false;
+        if (onSwitch) onSwitch(target);
+      });
+    }
+
+    var TABS = [["submit", "Submit Reading"], ["maint", "Society Maintenance"], ["house", "My house"], ["report", "Reports"], ["admin", "Admin"]];
+    function showTab(name) {
+      TABS.forEach(function (t) { var el = $("#v-" + t[0]); if (el) el.hidden = t[0] !== name; });
+      Array.prototype.forEach.call($("#tabs").children, function (b) { if (b.dataset.tab === name) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+      if (name === "house" && !loaded.house) { loaded.house = true; loadHouse(); }
+      if (name === "maint" && !loaded.maint) { loaded.maint = true; loadMaintTab(); }
+      if (name === "report" && !loaded.report) { loaded.report = true; loadReport(); }
+      if (name === "admin") showAdmin(adminLoaded || "pay");
+    }
+
+    function syncOwner() { var h = B.houses.filter(function (x) { return x.house === $("#f-house").value; })[0]; $("#f-owner").value = h ? h.owner || "(no owner set)" : ""; }
+    function deadlineNote() {
+      var m = B.currentMonth, s = B.settings, p = m.split("-"), d = Math.min(s.deadline_day, new Date(+p[0], +p[1], 0).getDate());
+      var last = new Date(+p[0], +p[1] - 1, d, 23, 59, 59), el = $("#deadline");
+      var txt = "Last date for " + mLong(m) + ": " + d + " " + MONTHS[+p[1] - 1] + ". Late fee: ₹ " + s.late_fee_flat + " + ₹ " + s.late_fee_per_day + " per day.";
+      if (new Date() > last) txt = "The last date (" + d + " " + MONTHS[+p[1] - 1] + ") has already passed. A late fee will be added. Late fee: ₹ " + s.late_fee_flat + " + ₹ " + s.late_fee_per_day + " per day.";
+      el.hidden = false; el.textContent = txt; el.className = "msg " + (new Date() > last ? "err" : "warn");
+    }
+    function showDecision(flags) {
+      var el = $("#decision"); el.hidden = false;
+      el.innerHTML = "<strong>Please check before submitting</strong><ul>" + flags.map(function (f) { return "<li>" + esc(f) + "</li>"; }).join("") +
+        '</ul><div class="actions" style="margin-top:0.75rem"><button type="button" id="d-fix">Change my entry</button><button type="button" class="primary" id="d-go">Submit anyway</button></div>';
+      $("#d-fix").onclick = function () { el.hidden = true; pendingSubmit = null; $("#f-reading").focus(); };
+      $("#d-go").onclick = function () { send(true); };
+    }
+    async function send(force) {
+      var out = $("#f-msg"), btn = $("#f-go"); msg(out, "", "");
+      try {
+        busy(btn, true, "Submit reading");
+        if (!pendingSubmit) {
+          if (!String($("#f-reading").value).trim()) throw new Error("Enter the meter reading.");
+          var photo = await filePhoto($("#f-photo"));
+          if (!photo && B.role !== "admin") throw new Error("Please add a photo of the meter.");
+          pendingSubmit = { month: B.currentMonth, house: $("#f-house").value, reading: $("#f-reading").value, photo: photo,
+            meterReplaced: $("#f-replaced").checked, startReading: $("#f-start").value, waiveLate: $("#f-waive").checked, waiveReason: $("#f-waive-reason").value };
+        }
+        pendingSubmit.force = !!force;
+        var r = await call("submitReading", pendingSubmit);
+        if (r.autoCorrect) { $("#f-reading").value = r.photoReading; $("#odo").innerHTML = odo(r.photoReading); msg(out, "warn", r.message); pendingSubmit = null; return; }
+        if (r.blocked) { msg(out, "err", r.message); pendingSubmit = null; return; }
+        if (r.needsDecision) { showDecision(r.flags); return; }
+        pendingSubmit = null; $("#decision").hidden = true; $("#form").reset(); $("#f-month").value = mLong(B.currentMonth); syncOwner(); $("#odo").innerHTML = odo(0);
+        loaded.house = false; loaded.report = false;
+        var t = r.firstReading ? "Saved as the starting reading. Billing begins next month." : "Saved. Used " + nm(r.litres) + " L, charge ₹ " + rs(r.usage) + (r.lateFee ? ", late fee ₹ " + rs(r.lateFee) + " (" + r.lateDays + " days)" : "") + ".";
+        if (r.status === "review") t += " It is marked for review by the admin.";
+        msg(out, "ok", t);
+      } catch (e) { msg(out, "err", errText(e)); pendingSubmit = null; } finally { busy(btn, false, "Submit reading"); }
+    }
+
+    async function loadHouse() {
+      var h = $("#h-house").value; if (!h) return;
+      var tb = $("#h-rows"); tb.innerHTML = '<tr><td colspan="13"><div class="sk"></div></td></tr>'; msg($("#h-msg"), "", "");
+      try {
+        var d = await call("getHouseHistory", h); B.hist = d;
+        var latest = d.months.filter(function (r) { return r.paidState === "paid"; })[0];
+        $("#h-banner").innerHTML = latest ? '<div class="banner-ok">✓ Payment for ' + esc(mLong(latest.month)) + ' is verified. Thank you.</div>' : "";
+        tb.innerHTML = d.months.map(function (r) {
+          var cls = r.paidState === "paid" ? "paid" : r.paidState === "awaiting" ? "await" : r.state === "NOT SENT" ? "ns" : "";
+          var pays = r.payments.map(function (p) {
+            return '<div class="hint">' + (p.verified ? "✓ Verified" : "Waiting for admin") + " - ₹ " + rs(p.amount) + " (" + esc(p.mode) + ", " + esc(p.date) + ") " + (p.shotUrl ? '<a href="' + esc(p.shotUrl) + '" target="_blank" rel="noopener">screenshot</a>' : "") +
+              (!p.verified ? ' <button class="lnk" data-delpay="' + esc(p.id) + '">remove</button>' : "") + "</div>";
+          }).join("");
+          return '<tr class="' + cls + '"><td class="l">' + esc(mLong(r.month)) + pays + '</td><td class="l">' + stateChip(r) + "</td><td>" + nm(r.current) + "</td><td>" + nm(r.litres) + "</td><td>" + dash(r.usage) + "</td><td>" + lateCell(r) +
+            "</td><td>" + dash(r.arrears) + "</td><td>" + rs(r.total) + "</td><td>" + dash(r.paid) + "</td><td><b>" + rs(r.balance) + '</b></td><td class="l">' + checkChip(r.status) + '</td><td class="l">' + photoLink(r.photoUrl) + "</td><td>" +
+            (r.hasBill || r.balance > 0 ? '<button class="btn-sm primary" data-pay="' + esc(r.month) + '" data-bal="' + Math.max(0, Math.ceil(r.balance)) + '" data-paytype="water">Pay</button>' : "") + "</td></tr>";
+        }).join("");
+      } catch (e) { tb.innerHTML = ""; msg($("#h-msg"), "err", errText(e)); }
+    }
+    async function loadMaintHouse() {
+      var h = $("#h-house").value; if (!h) return;
+      var tb = $("#hm-rows"); tb.innerHTML = '<tr><td colspan="9"><div class="sk"></div></td></tr>'; msg($("#hm-msg"), "", "");
+      try {
+        var d = await call("getMaintHistory", h);
+        if (!d.months.length) { tb.innerHTML = '<tr><td class="l" colspan="9">Maintenance is not configured yet. Ask the admin to set it up in Settings.</td></tr>'; return; }
+        var latest = d.months.filter(function (r) { return r.paidState === "paid"; })[0];
+        $("#hm-banner").innerHTML = latest ? '<div class="banner-ok">✓ Maintenance for ' + esc(mLong(latest.month)) + ' is verified.</div>' : "";
+        tb.innerHTML = d.months.map(function (r) {
+          var cls = r.paidState === "paid" ? "paid" : r.paidState === "awaiting" ? "await" : r.paidState === "due" ? "ns" : "";
+          var pays = r.payments.map(function (p) {
+            return '<div class="hint">' + (p.verified ? "✓ Verified" : "Waiting") + " - ₹ " + rs(p.amount) + " (" + esc(p.mode) + ", " + esc(p.date) + ") " +
+              (!p.verified ? ' <button class="lnk" data-delmaintpay="' + esc(p.id) + '">remove</button>' : "") + "</div>";
+          }).join("");
+          return '<tr class="' + cls + '"><td class="l">' + esc(mLong(r.month)) + pays + "</td><td>" + rs(r.amount) + "</td><td>" + (r.lateFee ? rs(r.lateFee) : "-") +
+            "</td><td>" + dash(r.arrears) + "</td><td>" + rs(r.total) + "</td><td>" + dash(r.paid) + "</td><td><b>" + rs(r.balance) + '</b></td><td class="l">' + paidChip(r.paidState) + "</td><td>" +
+            (r.balance > 0 ? '<button class="btn-sm primary" data-pay="' + esc(r.month) + '" data-bal="' + Math.max(0, Math.ceil(r.balance)) + '" data-paytype="maint">Pay</button>' : "") + "</td></tr>";
+        }).join("");
+      } catch (e) { tb.innerHTML = ""; msg($("#hm-msg"), "err", errText(e)); }
+    }
+
+    function syncMaintOwner() { var h = B.houses.filter(function (x) { return x.house === $("#m-house").value; })[0]; $("#m-owner").value = h ? h.owner || "(no owner set)" : ""; }
+    async function loadMaintTab() {
+      var h = $("#m-house").value; if (!h) return;
+      syncMaintOwner();
+      $("#m-month").value = mLong(B.currentMonth);
+      $("#m-amt").textContent = rs(B.settings.maint_amount);
+      $("#m-due").textContent = B.settings.maint_due_day;
+      var tb = $("#m-rows"); tb.innerHTML = '<tr><td colspan="9"><div class="sk"></div></td></tr>'; msg($("#m-msg"), "", "");
+      try {
+        var d = await call("getMaintHistory", h);
+        if (!d.months.length) { tb.innerHTML = '<tr><td class="l" colspan="9">Maintenance is not configured yet. Ask the admin to set it up in Admin &gt; Settings.</td></tr>'; return; }
+        var latest = d.months.filter(function (r) { return r.paidState === "paid"; })[0];
+        $("#m-banner").innerHTML = latest ? '<div class="banner-ok">✓ Maintenance for ' + esc(mLong(latest.month)) + ' is verified. Thank you.</div>' : "";
+        tb.innerHTML = d.months.map(function (r) {
+          var cls = r.paidState === "paid" ? "paid" : r.paidState === "awaiting" ? "await" : r.paidState === "due" ? "ns" : "";
+          var pays = r.payments.map(function (p) {
+            return '<div class="hint">' + (p.verified ? "✓ Verified" : "Waiting for admin") + " - ₹ " + rs(p.amount) + " (" + esc(p.mode) + ", " + esc(p.date) + ") " +
+              (p.shotUrl ? '<a href="' + esc(p.shotUrl) + '" target="_blank" rel="noopener">screenshot</a> ' : "") +
+              (!p.verified ? '<button class="lnk" data-delmaintpay="' + esc(p.id) + '">remove</button>' : "") + "</div>";
+          }).join("");
+          return '<tr class="' + cls + '"><td class="l">' + esc(mLong(r.month)) + pays + "</td><td>" + rs(r.amount) + "</td><td>" + (r.lateFee ? rs(r.lateFee) : "-") +
+            "</td><td>" + dash(r.arrears) + "</td><td>" + rs(r.total) + "</td><td>" + dash(r.paid) + "</td><td><b>" + rs(r.balance) + '</b></td><td class="l">' + paidChip(r.paidState) + "</td><td>" +
+            (r.balance > 0 ? '<button class="btn-sm primary" data-maintpay="' + esc(r.month) + '" data-bal="' + Math.max(0, Math.ceil(r.balance)) + '">Pay</button>' : "") + "</td></tr>";
+        }).join("");
+      } catch (e) { tb.innerHTML = ""; msg($("#m-msg"), "err", errText(e)); }
+    }
+
+    function openPay(house, month, bal, type) {
+      payCtx = { house: house, month: month, type: type || "water" };
+      $("#pay-title").textContent = (type === "maint" ? "Maintenance payment" : "Water payment") + " for house " + house + " - " + mLong(month);
+      $("#pay-type").value = type || "water";
+      $("#pay-amount").value = bal || ""; $("#pay-date").value = new Date().toISOString().slice(0, 10); $("#pay-ref").value = ""; $("#pay-shot").value = ""; msg($("#pay-msg"), "", "");
+      $("#pay-dlg").showModal();
+    }
+    async function sendPay(e) {
+      e.preventDefault(); var btn = $("#pay-go");
+      try {
+        busy(btn, true, "Send");
+        var shot = await filePhoto($("#pay-shot")); if (!shot) throw new Error("Please attach the payment screenshot.");
+        var fn = payCtx.type === "maint" ? "submitMaintPayment" : "submitPayment";
+        await call(fn, { house: payCtx.house, month: payCtx.month, amount: $("#pay-amount").value, date: $("#pay-date").value, mode: $("#pay-mode").value, ref: $("#pay-ref").value, screenshot: shot });
+        $("#pay-dlg").close();
+        loaded.house = false; loaded.maint = false; loaded.report = false;
+        if (payCtx.type === "maint") { msg($("#hm-msg").hidden ? $("#m-msg") : $("#hm-msg"), "ok", "Payment sent. The admin will verify it."); loadMaintTab(); loadMaintHouse(); }
+        else { msg($("#h-msg"), "ok", "Payment sent. The admin will check it; the row turns green once verified."); loadHouse(); }
+      } catch (er) { msg($("#pay-msg"), "err", errText(er)); } finally { busy(btn, false, "Send"); }
+    }
+
+    async function loadReport() {
+      var from = $("#r-from").value, to = $("#r-to").value, tb = $("#r-rows"); msg($("#r-msg"), "", "");
+      if (from > to) { msg($("#r-msg"), "err", "The 'from' month must not be after the 'to' month."); return; }
+      tb.innerHTML = '<tr><td colspan="15"><div class="sk"></div></td></tr>'; $("#r-foot").innerHTML = "";
+      try {
+        var rep = await call("getMonthReport", from, to); var s = rep.summary;
+        $("#r-sum").innerHTML = "<span>Houses sent: <b>" + s.sent + " of " + s.total + "</b></span><span>Usage: <b>" + nm(s.litres) + " L</b></span><span>Late fees: <b>₹ " + rs(s.lateFee) + "</b></span><span>Grand total: <b>₹ " + rs(s.grand) +
+          "</b></span><span>Paid: <b>₹ " + rs(s.paid) + "</b></span><span>Balance: <b>₹ " + rs(s.balance) + "</b></span><span>Not sent: <b>" + (s.notSent.length ? esc(s.notSent.join(", ")) : "none") + "</b></span>";
+        tb.innerHTML = rep.rows.map(function (r) {
+          var cls = r.state === "NOT SENT" ? "ns" : r.paidState === "paid" ? "paid" : r.paidState === "awaiting" ? "await" : "";
+          return '<tr class="' + cls + '"><td class="l">' + esc(r.house) + '</td><td class="l">' + esc(r.owner) + "</td><td>" + nm(r.previous) + "</td><td>" + nm(r.current) + "</td><td>" + nm(r.litres) + "</td><td>" + dash(r.usage) + "</td><td>" + lateCell(r) +
+            "</td><td>" + dash(r.adj) + "</td><td>" + dash(r.arrears) + "</td><td>" + rs(r.total) + "</td><td>" + dash(r.paid) + "</td><td>" + rs(r.balance) + '</td><td class="l">' + stateChip(r) + (r.status === "review" ? ' <span class="chip warn">review</span>' : "") + '</td><td class="l">' + photoLink(r.photoId ? "https://drive.google.com/file/d/" + r.photoId + "/view" : "") + "</td><td>" +
+            (r.canBill ? '<button class="btn-sm" data-bill="' + esc(r.house) + '">Bill PDF</button>' : "") + (rep.canBill ? ' <button class="btn-sm" data-mailbill="' + esc(r.house) + '">Email</button>' : "") + "</td></tr>";
+        }).join("");
+        $("#r-foot").innerHTML = '<tr><td class="l" colspan="4">Total</td><td>' + nm(s.litres) + "</td><td>" + rs(s.usage) + "</td><td>" + rs(s.lateFee) + "</td><td>" + rs(s.adj) + "</td><td>" + rs(s.arrears) + "</td><td>" + rs(s.grand) + "</td><td>" + rs(s.paid) + "</td><td>" + rs(s.balance) + '</td><td colspan="3"></td></tr>';
+      } catch (e) { tb.innerHTML = ""; msg($("#r-msg"), "err", errText(e)); }
+    }
+    async function loadMaintReport() {
+      var from = $("#r-from").value, to = $("#r-to").value, tb = $("#rm-rows"); msg($("#rm-msg"), "", "");
+      if (from > to) { msg($("#rm-msg"), "err", "The 'from' month must not be after the 'to' month."); return; }
+      tb.innerHTML = '<tr><td colspan="9"><div class="sk"></div></td></tr>'; $("#rm-foot").innerHTML = "";
+      try {
+        var rep = await call("getMaintReport", from, to); var s = rep.summary;
+        $("#rm-sum").innerHTML = "<span>Houses: <b>" + s.total + "</b></span><span>Amount: <b>₹ " + rs(s.amount) + "</b></span><span>Late fees: <b>₹ " + rs(s.lateFee) +
+          "</b></span><span>Grand total: <b>₹ " + rs(s.grand) + "</b></span><span>Paid: <b>₹ " + rs(s.paid) + "</b></span><span>Balance: <b>₹ " + rs(s.balance) + "</b></span>";
+        tb.innerHTML = rep.rows.map(function (r) {
+          var cls = r.paidState === "paid" ? "paid" : r.paidState === "awaiting" ? "await" : r.paidState === "due" ? "ns" : "";
+          return '<tr class="' + cls + '"><td class="l">' + esc(r.house) + '</td><td class="l">' + esc(r.owner) + "</td><td>" + rs(r.amount) + "</td><td>" + (r.lateFee ? rs(r.lateFee) : "-") +
+            "</td><td>" + dash(r.arrears) + "</td><td>" + rs(r.total) + "</td><td>" + dash(r.paid) + "</td><td>" + rs(r.balance) + '</td><td class="l">' + paidChip(r.paidState) + "</td></tr>";
+        }).join("");
+        $("#rm-foot").innerHTML = '<tr><td class="l" colspan="2">Total</td><td>' + rs(s.amount) + "</td><td>" + rs(s.lateFee) + "</td><td>" + rs(s.arrears) + "</td><td>" + rs(s.grand) + "</td><td>" + rs(s.paid) + "</td><td>" + rs(s.balance) + "</td><td></td></tr>";
+      } catch (e) { tb.innerHTML = ""; msg($("#rm-msg"), "err", errText(e)); }
+    }
+
+    var ATABS = [["pay", "Payments"], ["settings", "Settings"], ["houses", "Houses"], ["tools", "Billing tools"]];
+    async function showAdmin(name) {
+      adminLoaded = name;
+      $("#a-tabs").innerHTML = ATABS.map(function (t) { return '<button type="button" data-atab="' + t[0] + '"' + (t[0] === name ? ' aria-current="page"' : "") + ">" + t[1] + "</button>"; }).join("");
+      ATABS.forEach(function (t) { $("#a-" + t[0]).hidden = t[0] !== name; });
+      try {
+        if (name === "pay") { loadPayments(); loadMaintPayments(); }
+        else { var d = await call("getAdminData"); B.admin = d; if (name === "settings") fillSettings(d.settings); if (name === "houses") renderHouses(d.houses); }
+      } catch (e) { msg($("#banner"), "err", errText(e)); $("#banner").hidden = false; }
+    }
+    async function loadPayments() {
+      var tb = $("#p-rows"); tb.innerHTML = '<tr><td colspan="10"><div class="sk"></div></td></tr>'; msg($("#p-msg"), "", "");
+      try {
+        var list = await call("listPayments", $("#p-month").value === "all" ? "" : $("#p-month").value);
+        tb.innerHTML = list.length ? list.map(function (p) {
+          return '<tr class="' + (p.verified ? "paid" : "await") + '"><td class="l"><label class="check"><input type="checkbox" data-verify="' + esc(p.id) + '"' + (p.verified ? " checked" : "") + "> " + (p.verified ? "Verified" : "Check") + '</label></td><td class="l">' + esc(mLong(p.month)) + '</td><td class="l">' + esc(p.house) + "</td><td>" + rs(p.amount) +
+            '</td><td class="l">' + esc(p.date) + '</td><td class="l">' + esc(p.mode) + '</td><td class="l">' + esc(p.ref) + '</td><td class="l">' + photoLink(p.shotUrl) + '</td><td class="l">' + esc(p.submittedBy) + '</td><td><button class="btn-sm" data-delp="' + esc(p.id) + '">Delete</button></td></tr>';
+        }).join("") : '<tr><td class="l" colspan="10">No payments yet for this month.</td></tr>';
+      } catch (e) { tb.innerHTML = ""; msg($("#p-msg"), "err", errText(e)); }
+    }
+    async function loadMaintPayments() {
+      var tb = $("#mp-rows"); tb.innerHTML = '<tr><td colspan="10"><div class="sk"></div></td></tr>'; msg($("#mp-msg"), "", "");
+      try {
+        var list = await call("listMaintPayments", $("#mp-month").value === "all" ? "" : $("#mp-month").value);
+        tb.innerHTML = list.length ? list.map(function (p) {
+          return '<tr class="' + (p.verified ? "paid" : "await") + '"><td class="l"><label class="check"><input type="checkbox" data-mverify="' + esc(p.id) + '"' + (p.verified ? " checked" : "") + "> " + (p.verified ? "Verified" : "Check") + '</label></td><td class="l">' + esc(mLong(p.month)) + '</td><td class="l">' + esc(p.house) + "</td><td>" + rs(p.amount) +
+            '</td><td class="l">' + esc(p.date) + '</td><td class="l">' + esc(p.mode) + '</td><td class="l">' + esc(p.ref) + '</td><td class="l">' + photoLink(p.shotUrl) + '</td><td class="l">' + esc(p.submittedBy) + '</td><td><button class="btn-sm" data-delmp="' + esc(p.id) + '">Delete</button></td></tr>';
+        }).join("") : '<tr><td class="l" colspan="10">No maintenance payments yet for this month.</td></tr>';
+      } catch (e) { tb.innerHTML = ""; msg($("#mp-msg"), "err", errText(e)); }
+    }
+    function fillSettings(s) {
+      $("#s-name").value = s.society_name; $("#s-price").value = s.price_per_L; $("#s-lpu").value = s.litres_per_unit; $("#s-deadline").value = s.deadline_day; $("#s-flat").value = s.late_fee_flat; $("#s-day").value = s.late_fee_per_day;
+      $("#s-due").value = s.pay_due_day; $("#s-pflat").value = s.pay_late_fee_flat; $("#s-pday").value = s.pay_late_fee_per_day; $("#s-admins").value = s.admin_emails;
+      $("#s-mamt").value = s.maint_amount; $("#s-mstart").value = s.maint_start_month; $("#s-mdue").value = s.maint_due_day; $("#s-mflat").value = s.maint_late_fee_flat; $("#s-mday").value = s.maint_late_fee_per_day;
+    }
+    function renderHouses(list) {
+      $("#ah-rows").innerHTML = list.map(function (h, i) {
+        return '<tr data-orig="' + esc(h.house) + '"><td class="l"><input value="' + esc(h.house) + '" style="width:80px"></td><td class="l"><input value="' + esc(h.owner) + '" style="min-width:160px"></td><td class="l"><input value="' + esc(h.emails) + '" style="min-width:260px"></td><td><button class="btn-sm primary" data-savehouse="' + i + '">Save</button></td></tr>';
+      }).join("");
+    }
+    async function adminForm(btn, label, fn, outId, okText, after) {
+      var out = $(outId); msg(out, "", "");
+      try { busy(btn, true, label); var r = await fn(); msg(out, "ok", typeof okText === "function" ? okText(r) : okText); if (after) after(r); } catch (e) { msg(out, "err", errText(e)); } finally { busy(btn, false, label); }
+    }
+
+    function start() {
+      $("#loading").hidden = true; $("#society").textContent = B.settings.society_name;
+      var roleTxt = B.role === "admin" ? "Admin" : B.role === "resident" ? "House " + B.mine.join(", ") : "Not linked";
+      $("#who").innerHTML = esc(B.email) + ' <span class="chip ok">' + esc(roleTxt) + "</span>";
+      $("#user-email").textContent = B.email; $("#user-role").textContent = roleTxt;
+      $("#user-avatar").textContent = (B.email || "?")[0].toUpperCase();
+      if (B.role === "unlinked") { msg($("#banner"), "err", "Your account (" + B.email + ") is not linked to any house. Please ask the admin to add your email to your house."); $("#banner").hidden = false; return; }
+      var tabs = TABS.filter(function (t) { return (t[0] !== "admin" && t[0] !== "report") || B.role === "admin"; });
+      $("#tabs").hidden = false;
+      $("#tabs").innerHTML = tabs.map(function (t) { return '<button type="button" data-tab="' + t[0] + '">' + t[1] + "</button>"; }).join("");
+      var own = B.role === "admin" ? B.houses : B.houses.filter(function (h) { return B.mine.indexOf(h.house) >= 0; });
+      houseOpts($("#f-house"), own); houseOpts($("#h-house"), own); houseOpts($("#m-house"), own);
+      ["#ap-house", "#ad-house", "#amp-house"].forEach(function (s) { houseOpts($(s), B.houses); });
+      $("#f-house").disabled = B.role !== "admin" && own.length === 1;
+      $("#m-house").disabled = B.role !== "admin" && own.length === 1;
+      $("#f-month").value = mLong(B.currentMonth);
+      monthOpts($("#r-from"), false); monthOpts($("#r-to"), false);
+      ["#p-month", "#ap-month", "#ad-month", "#mp-month", "#amp-month"].forEach(function (s) { monthOpts($(s), s === "#ap-month" || s === "#amp-month"); });
+      $("#p-month").insertAdjacentHTML("afterbegin", '<option value="all">All months</option>');
+      $("#mp-month").insertAdjacentHTML("afterbegin", '<option value="all">All months</option>');
+      $("#pay-mode").innerHTML = $("#ap-mode").innerHTML = $("#amp-mode").innerHTML = B.payModes.map(function (m) { return "<option>" + esc(m) + "</option>"; }).join("");
+      $("#ap-date").value = $("#amp-date").value = new Date().toISOString().slice(0, 10);
+      if (B.role === "admin") { $("#f-admin").hidden = false; }
+      $("#lpu").textContent = B.settings.litres_per_unit; syncOwner(); deadlineNote(); $("#odo").innerHTML = odo(0);
+      setupSubTabs($("#h-stabs"), { water: $("#h-water"), maint: $("#h-maint") }, function (t) { if (t === "maint") loadMaintHouse(); else loadHouse(); });
+      setupSubTabs($("#r-stabs"), { water: $("#r-water"), maint: $("#r-maint") }, function (t) { if (t === "maint") loadMaintReport(); else loadReport(); });
+      showTab("submit");
+    }
+
+    document.addEventListener("click", async function (e) {
+      var t = e.target.closest("button, a"); if (!t) return;
+      if (t.dataset.tab) showTab(t.dataset.tab);
+      else if (t.dataset.atab) showAdmin(t.dataset.atab);
+      else if (t.dataset.pay) openPay($("#h-house").value, t.dataset.pay, t.dataset.bal, t.dataset.paytype);
+      else if (t.dataset.maintpay) openPay($("#m-house").value, t.dataset.maintpay, t.dataset.bal, "maint");
+      else if (t.dataset.delpay) { try { await call("deletePayment", t.dataset.delpay); loaded.house = false; loaded.report = false; loadHouse(); } catch (er) { msg($("#h-msg"), "err", errText(er)); } }
+      else if (t.dataset.delmaintpay) { try { await call("deleteMaintPayment", t.dataset.delmaintpay); loaded.maint = false; loaded.report = false; loadMaintTab(); loadMaintHouse(); } catch (er) { msg($("#m-msg"), "err", errText(er)); } }
+      else if (t.dataset.delp) { try { await call("deletePayment", t.dataset.delp); loaded.house = false; loaded.report = false; loadPayments(); } catch (er) { msg($("#p-msg"), "err", errText(er)); } }
+      else if (t.dataset.delmp) { try { await call("deleteMaintPayment", t.dataset.delmp); loaded.maint = false; loaded.report = false; loadMaintPayments(); } catch (er) { msg($("#mp-msg"), "err", errText(er)); } }
+      else if (t.dataset.bill) { try { busy(t, true); download(await call("getHouseBillPdf", t.dataset.bill, $("#r-from").value, $("#r-to").value)); } catch (er) { msg($("#r-msg"), "err", errText(er)); } finally { busy(t, false); } }
+      else if (t.dataset.mailbill) { try { busy(t, true); await call("emailOneHouseBill", t.dataset.mailbill, $("#r-from").value, $("#r-to").value); msg($("#r-msg"), "ok", "Bill emailed to house " + t.dataset.mailbill + "."); } catch (er) { msg($("#r-msg"), "err", errText(er)); } finally { busy(t, false); } }
+      else if (t.dataset.savehouse) {
+        var tr = t.closest("tr"), ins = tr.querySelectorAll("input");
+        adminForm(t, "Save", function () { return call("saveHouse", { originalHouse: tr.dataset.orig, house: ins[0].value, owner: ins[1].value, emails: ins[2].value }); }, "#ah-msg", "House saved.", async function () {
+          B = Object.assign(B, await call("bootstrap")); var own2 = B.houses; ["#f-house", "#h-house", "#m-house", "#ap-house", "#ad-house", "#amp-house"].forEach(function (s) { houseOpts($(s), own2); }); syncOwner(); showAdmin("houses");
+        });
+      }
+    });
+    document.addEventListener("change", async function (e) {
+      var t = e.target;
+      if (t.dataset && t.dataset.verify) {
+        var out = $("#p-msg");
+        try { var r = await call("setPaymentVerified", t.dataset.verify, t.checked); loaded.house = false; loaded.report = false; msg(out, r.mailError ? "warn" : "ok", t.checked ? (r.mailed ? "Verified. The house was emailed its bill." : "Verified." + (r.mailError ? " Email not sent: " + r.mailError : "")) : "Verification removed."); loadPayments(); }
+        catch (er) { t.checked = !t.checked; msg(out, "err", errText(er)); }
+      }
+      if (t.dataset && t.dataset.mverify) {
+        var out2 = $("#mp-msg");
+        try { await call("setMaintPaymentVerified", t.dataset.mverify, t.checked); loaded.maint = false; loaded.report = false; msg(out2, "ok", t.checked ? "Verified." : "Verification removed."); loadMaintPayments(); }
+        catch (er) { t.checked = !t.checked; msg(out2, "err", errText(er)); }
+      }
+    });
+    $("#f-house").addEventListener("change", syncOwner);
+    $("#m-house").addEventListener("change", loadMaintTab);
+    $("#f-reading").addEventListener("input", function () { $("#odo").innerHTML = odo(this.value); pendingSubmit = null; });
+    $("#f-replaced").addEventListener("change", function () { $("#f-start-l").hidden = !this.checked; });
+    $("#f-waive").addEventListener("change", function () { $("#f-waive-l").hidden = !this.checked; });
+    $("#form").addEventListener("submit", function (e) { e.preventDefault(); pendingSubmit = null; $("#decision").hidden = true; send(false); });
+    $("#h-house").addEventListener("change", function () { loadHouse(); loadMaintHouse(); });
+    $("#r-from").addEventListener("change", function () { if ($("#r-to").value < this.value) $("#r-to").value = this.value; loadReport(); });
+    $("#r-to").addEventListener("change", function () { loadReport(); });
+    $("#p-month").addEventListener("change", loadPayments);
+    $("#mp-month").addEventListener("change", loadMaintPayments);
+    $("#pay-form").addEventListener("submit", sendPay);
+    $("#pay-cancel").addEventListener("click", function () { $("#pay-dlg").close(); });
+    $("#r-pdf").addEventListener("click", async function () { var b = this; try { busy(b, true); download(await call("getReportPdf", $("#r-from").value, $("#r-to").value)); } catch (e) { msg($("#r-msg"), "err", errText(e)); } finally { busy(b, false); } });
+    $("#r-mail").addEventListener("click", function () { var b = this; adminForm(b, "Email PDF to all houses", function () { return call("emailReportPdf", $("#r-from").value, $("#r-to").value); }, "#r-msg", function (r) { return "PDF emailed to " + r.sent + " addresses."; }); });
+    $("#r-mail2").addEventListener("click", function () { var b = this; adminForm(b, "Email each house its own bill", function () { return call("emailHouseBills", $("#r-from").value, $("#r-to").value); }, "#r-msg", function (r) { return "Bills emailed to " + r.sent + " houses." + (r.skipped.length ? " No email for house: " + r.skipped.join(", ") + "." : ""); }); });
+    $("#rm-pdf").addEventListener("click", async function () { var b = this; try { busy(b, true); download(await call("getMaintReportPdf", $("#r-from").value, $("#r-to").value)); } catch (e) { msg($("#rm-msg"), "err", errText(e)); } finally { busy(b, false); } });
+    $("#ah-add").addEventListener("click", function () {
+      $("#ah-rows").insertAdjacentHTML("beforeend", '<tr data-orig=""><td class="l"><input style="width:80px"></td><td class="l"><input style="min-width:160px"></td><td class="l"><input style="min-width:260px"></td><td><button class="btn-sm primary" data-savehouse="new">Save</button></td></tr>');
+    });
+    $("#s-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      adminForm(e.target.querySelector("button"), "Save settings", function () {
+        return call("updateSettings", { society_name: $("#s-name").value, price_per_L: $("#s-price").value, litres_per_unit: $("#s-lpu").value, deadline_day: $("#s-deadline").value, late_fee_flat: $("#s-flat").value, late_fee_per_day: $("#s-day").value,
+          pay_due_day: $("#s-due").value, pay_late_fee_flat: $("#s-pflat").value, pay_late_fee_per_day: $("#s-pday").value, admin_emails: $("#s-admins").value,
+          maint_amount: $("#s-mamt").value, maint_start_month: $("#s-mstart").value, maint_due_day: $("#s-mdue").value, maint_late_fee_flat: $("#s-mflat").value, maint_late_fee_per_day: $("#s-mday").value });
+      }, "#s-msg", "Settings saved.", async function () { B = Object.assign(B, await call("bootstrap")); $("#society").textContent = B.settings.society_name; deadlineNote(); });
+    });
+    $("#ap-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      adminForm(e.target.querySelector("button"), "Save payment", async function () {
+        return call("submitPayment", { house: $("#ap-house").value, month: $("#ap-month").value, amount: $("#ap-amount").value, date: $("#ap-date").value, mode: $("#ap-mode").value, ref: $("#ap-ref").value, screenshot: await filePhoto($("#ap-shot")), verified: $("#ap-ver").checked });
+      }, "#p-msg", function (r) { return r.verified ? (r.mailed ? "Saved, verified and emailed." : "Saved and verified." + (r.mailError ? " Email not sent: " + r.mailError : "")) : "Saved. Tick Verified when checked."; }, function () { loaded.house = false; loaded.report = false; $("#ap-amount").value = ""; $("#ap-ref").value = ""; $("#ap-shot").value = ""; loadPayments(); });
+    });
+    $("#amp-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      adminForm(e.target.querySelector("button"), "Save payment", async function () {
+        return call("submitMaintPayment", { house: $("#amp-house").value, month: $("#amp-month").value, amount: $("#amp-amount").value, date: $("#amp-date").value, mode: $("#amp-mode").value, ref: $("#amp-ref").value, screenshot: await filePhoto($("#amp-shot")), verified: $("#amp-ver").checked });
+      }, "#mp-msg", function (r) { return r.verified ? "Saved and verified." : "Saved. Tick Verified when checked."; }, function () { loaded.maint = false; loaded.report = false; $("#amp-amount").value = ""; $("#amp-ref").value = ""; $("#amp-shot").value = ""; loadMaintPayments(); });
+    });
+    $("#ad-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      adminForm(e.target.querySelector("button"), "Save adjustment", function () { return call("setAdjustment", { house: $("#ad-house").value, month: $("#ad-month").value, amount: $("#ad-amount").value, note: $("#ad-note").value }); }, "#t-msg", "Adjustment saved. It will appear as a remark on the bill.");
+    });
+
+    call("bootstrap").then(function (b) { B = b; start(); })
+      .catch(function (e) { $("#loading").hidden = true; msg($("#banner"), "err", "The register could not be loaded. " + errText(e) + " Reload the page to try again."); $("#banner").hidden = false; });
+  })();
+</script>
+</body>
+</html>
